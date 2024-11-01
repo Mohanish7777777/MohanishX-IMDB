@@ -1,0 +1,51 @@
+<!-- views/movie-details.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= movie.title %> - Movie Details</title>
+</head>
+<body>
+    <h1><%= movie.title %> (<%= movie.year %>)</h1>
+    <img src="<%= movie.image %>" alt="<%= movie.title %> Poster" style="max-width: 300px;">
+    <p><strong>Plot:</strong> <%= movie.plot %></p>
+    <p><strong>Genres:</strong> <%= movie.genre.join(', ') %></p>
+    <p><strong>Runtime:</strong> <%= movie.runtime %></p>
+    <p><strong>Rating:</strong> <%= movie.rating.star %> / 10 (based on <%= movie.rating.count %> reviews)</p>
+    <p><strong>Content Rating:</strong> <%= movie.contentRating %></p>
+    <p><strong>Release Date:</strong> <%= new Date(movie.releaseDetailed.date).toDateString() %></p>
+    <p><strong>Country:</strong> <%= movie.releaseDetailed.releaseLocation.country %></p>
+
+    <h3>Images</h3>
+    <div>
+        <% movie.images.forEach(image => { %>
+            <img src="<%= image %>" alt="Image from <%= movie.title %>" style="max-width: 150px; margin: 5px;">
+        <% }) %>
+    </div>
+
+    <h3>Cast</h3>
+    <ul>
+        <% movie.actors.forEach(actor => { %>
+            <li><%= actor %></li>
+        <% }) %>
+    </ul>
+
+    <h3>Director(s)</h3>
+    <ul>
+        <% movie.directors.forEach(director => { %>
+            <li><%= director %></li>
+        <% }) %>
+    </ul>
+
+    <h3>Writer(s)</h3>
+    <ul>
+        <% movie.writers.forEach(writer => { %>
+            <li><%= writer %></li>
+        <% }) %>
+    </ul>
+
+    <p><a href="<%= movie.imdb %>" target="_blank">View on IMDb</a></p>
+    <a href="/">Back to Home</a>
+</body>
+</html>

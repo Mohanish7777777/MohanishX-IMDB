@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - MohanishX</title>
+    <link rel="icon" type="image/x-icon" href="https://i.ibb.co/1Z98bk6/Thumbnail-removebg-preview-removebg-preview.png">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .navbar { background-color: #007BFF; color: white; padding: 15px; display: flex; align-items: center; }
+        .navbar img { height: 40px; margin-right: 10px; }
+        .navbar h1 { margin: 0; font-size: 24px; }
+        .container { padding: 20px; }
+        .content { display: flex; gap: 20px; }
+        .results { margin-top: 20px; }
+        .result-item { border: 1px solid #ccc; padding: 10px; margin: 5px 0; }
+
+        /* Movie Details Layout */
+        .movie-details { display: flex; align-items: flex-start; gap: 20px; margin-top: 40px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        .movie-poster { width: 250px; }
+        .movie-poster img { width: 100%; border-radius: 8px; }
+        .movie-info { flex: 1; }
+        .movie-info p { margin: 5px 0; }
+        .actors, .genre { display: inline-block; margin-right: 10px; padding: 5px; background-color: #e1f5fe; border-radius: 4px; }
+
+        /* Slideshow Styling */
+        .slideshow-container { position: relative; max-width: 100%; margin: 20px auto; }
+        .slides { display: none; transition: opacity 1s ease-in-out; }
+        .slides img { width: 20%; border-radius: 8px; }
+        .prev, .next { cursor: pointer; position: absolute; top: 50%; width: auto; padding: 8px; color: white; font-weight: bold; font-size: 20px; transition: 0.6s ease; user-select: none; }
+        .next { right: 0; border-radius: 3px 0 0 3px; }
+        .prev { left: 0; border-radius: 0 3px 3px 0; }
+        .prev:hover, .next:hover { background-color: rgba(0, 0, 0, 0.8); }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <img src="https://i.ibb.co/1Z98bk6/Thumbnail-removebg-preview-removebg-preview.png" alt="Logo">
+        <h1>MohanishX Services</h1>
+    </div>
+    <div class="container">
+        <h1>Search Results for <%= imdb_code %></h1>
+        <!-- Movie Details Section -->
+        <div id="movie-details" class="movie-details" style="display: none;">
+            <div class="movie-poster" id="movie-poster">
+                
+                <!-- Movie Poster Image will be inserted here -->
+            </div>
+            <div class="movie-info" id="movie-info"></div>
+        </div>
+        <!-- <div class="slideshow-container" id="movie-slideshow"></div> -->
+        <div class="results">
+            <% if (results.length > 0) { %>
+                <% results.forEach(result => { %>
+                    <div class="result-item">
+                        <strong>File Name:</strong> <%= result.file_name %><br>
+                        <strong>File Size:</strong> <%= result.file_size %><br>
+                        <strong>File Link:</strong> <a href="<%= result.file_link %>" target="_blank">Download</a>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <p>No results found for this IMDb code.</p>
+            <% } %>
+        </div>
+
+        <!-- Movie Details Section
+        <div id="movie-details" class="movie-details" style="display: none;">
+            <div class="movie-poster" id="movie-poster">
+                Movie Poster Image will be inserted here -->
+            <!-- </div>
+            <div class="movie-info" id="movie-info"></div>
+        </div> -->
+
+        <!-- Slideshow Section -->
+    </div>
+
+    <!-- JavaScript for Fetching API Data and Rendering -->
+    <script>
+        const imdbCode = "<%= imdb_code %>";
+        
+        // Fetch data from API
+        fetch(`https://imdb-api.mohanishx1.workers.dev/title/${imdbCode}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.title) {
+                    // Display movie details
+                    document.getElementById('movie-details').style.display = 'flex';
+
+                    // Set movie title and poster
+                    document.getElementById('movie-info').innerHTML = `
+                        <h2>${data.title} (${data.year})</h2>
+                        <p><strong>Plot:</strong> ${data.plot}</p>
+                        <p><strong>Rating:</strong> ${data.rating.star} / 10 (${data.rating.count} votes)</p>
+                        <p><strong>Genre:</strong> ${data.genre.map(gen => `<span class="genre">${gen}</span>`).join('')}</p>
+                        <p><strong>Runtime:</strong> ${data.runtime}</p>
+                        <p><strong>Director:</strong> ${data.directors.join(", ")}</p>
+                        <p><strong>Writer:</strong> ${data.writers.join(", ")}</p>
+                        <p><strong>Cast:</strong> ${data.actors.map(actor => `<span class="actors">${actor}</span>`).join('')}</p>
+                        <p><strong>Languages:</strong> ${data.spokenLanguages.map(lang => lang.language).join(", ")}</p>
+                        <p><strong>Release Date:</strong> ${new Date(data.releaseDetailed.date).toLocaleDateString()} (Country: ${data.releaseDetailed.releaseLocation.country})</p>
+                        <p><strong>Awards:</strong> ${data.award.wins} Wins, ${data.award.nominations} Nominations</p>
+                    `;
+                    document.getElementById('movie-poster').innerHTML = `<img src="${data.image}" alt="${data.title} Poster">`;
+
+                    // Populate slideshow images
+                    const slideshowContainer = document.getElementById('movie-slideshow');
+                    data.images.forEach((img, index) => {
+                        const slide = document.createElement('div');
+                        slide.classList.add('slides');
+                        slide.innerHTML = `<img src="${img}" alt="Movie Image ${index + 1}">`;
+                        slideshowContainer.appendChild(slide);
+                    });
+
+                    // Initialize slideshow
+                    showSlides(1);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching movie data:', error);
+            });
+
+        // JavaScript for Slideshow
+        let slideIndex = 1;
+        function plusSlides(n) { showSlides(slideIndex += n); }
+        function showSlides(n) {
+            const slides = document.getElementsByClassName("slides");
+            if (n > slides.length) { slideIndex = 1 }
+            if (n < 1) { slideIndex = slides.length }
+            for (let i = 0; i < slides.length; i++) {
+                slides[i].style.display = "none";
+            }
+            if (slides[slideIndex - 1]) {
+                slides[slideIndex - 1].style.display = "block";
+            }
+        }
+
+        // Slow transition for slideshow
+        setInterval(() => { plusSlides(1); }, 4000);  // Change slide every 4 seconds
+    </script>
+</body>
+</html>
