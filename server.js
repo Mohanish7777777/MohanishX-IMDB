@@ -64,17 +64,39 @@ app.get('/admin', adminRequired, (req, res) => {
 });
 
 app.post('/admin', adminRequired, async (req, res) => {
-    const { data, imdb_code, confirm_update } = req.body;
+    const { data, imdb_code } = req.body;
     let message = '';
-    
+
     const existingEntry = await Entry.findOne({ imdb_code });
 
-    // Parsing Data
+    // Parsing data without saving to the database
     const results = parseData(data);
 
-    if (existingEntry && !confirm_update) {
+    // Check if entry exists and display a message
+    if (existingEntry) {
         message = 'IMDb code already exists. Please confirm to update the entry.';
-        return res.render('admin', { results, data, imdb_code, message, existing_entry: existingEntry });
+    }
+
+    // Render the admin page with parsed results and confirmation checkbox
+    res.render('admin', {
+        results,
+        data,
+        imdb_code,
+        message,
+        existing_entry: existingEntry
+    });
+});
+
+// Confirm Save Route to actually save the data in DB
+app.post('/admin/confirm-save', adminRequired, async (req, res) => {
+    const { imdb_code, confirm_update } = req.body;
+    const data = req.body.data; // Pass the data again from the hidden field
+    const results = parseData(data); // Parse data again if needed
+
+    const existingEntry = await Entry.findOne({ imdb_code });
+
+    if (existingEntry && !confirm_update) {
+        return res.redirect('/admin');
     }
 
     // Save or Update Entry
@@ -83,6 +105,7 @@ app.post('/admin', adminRequired, async (req, res) => {
     } else {
         await new Entry({ imdb_code, results }).save();
     }
+
     res.redirect('/admin');
 });
 
@@ -95,43 +118,56 @@ app.get('/search', async (req, res) => {
 
 // Utility Functions
 function parseData(data) {
-    const patternGdtot = /([^\n]+\.mkv)\s+-\s+([\d.]+\s+(?:GB|MB))\n(https?:\/\/[^\s]+)/g;
-    const patternHubCloud = /\[.*?\]\s*\(\d{4}\)\s*([^\s]+\.mkv)\s*\[([\d.]+ (GB|MB))\]\s*💾\s*(https?:\/\/[^\s]+)/g;
-    const patternGDFlix = /([^\n]+\.mkv)\s*\[([\d.]+ (GB|MB))\]\s*(https?:\/\/[^\s]+)/g;
+    const patternGdtot = /([^\n]+\.mkv)\s*-\s*([\d.]+\s*(?:GB|MB))\s*\n\s*(https?:\/\/[^\s]+)/g;
+    const patternHubCloud = /([^\n]+\.mkv)\s*\[([\d.]+\s*(?:GB|MB))\]\s*\n\s*(https?:\/\/[^\s]+)/g;
+    const patternGDFlix = /([^\n]+\.mkv)\s*\[\s*([\d.]+\s*(?:GB|MB))\s*]\s*(https?:\/\/[^\s]+)/g;
 
     const results = [];
+    const seenLinks = new Set();
+
     let match;
 
     // Match against GDTot
     while ((match = patternGdtot.exec(data)) !== null) {
-        results.push({
-            file_name: match[1],
-            file_size: match[2],
-            file_link: match[3]
-        });
+        const fileLink = match[3].trim();
+        if (!seenLinks.has(fileLink)) {
+            results.push({
+                file_name: match[1].trim(),
+                file_size: match[2].trim(),
+                file_link: fileLink
+            });
+            seenLinks.add(fileLink);
+        }
     }
 
     // Match against HubCloud
     while ((match = patternHubCloud.exec(data)) !== null) {
-        results.push({
-            file_name: match[1],
-            file_size: match[2],
-            file_link: match[4]
-        });
+        const fileLink = match[3].trim();
+        if (!seenLinks.has(fileLink)) {
+            results.push({
+                file_name: match[1].trim(),
+                file_size: match[2].trim(),
+                file_link: fileLink
+            });
+            seenLinks.add(fileLink);
+        }
     }
 
     // Match against GDFlix
     while ((match = patternGDFlix.exec(data)) !== null) {
-        results.push({
-            file_name: match[1],
-            file_size: match[2],
-            file_link: match[3]
-        });
+        const fileLink = match[3].trim();
+        if (!seenLinks.has(fileLink)) {
+            results.push({
+                file_name: match[1].trim(),
+                file_size: match[2].trim(),
+                file_link: fileLink
+            });
+            seenLinks.add(fileLink);
+        }
     }
 
     return results;
 }
-
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on ${PORT}`);
